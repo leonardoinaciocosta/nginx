@@ -2,22 +2,27 @@ version: '3'
 
 services:
   db:
-    image: mysql:5.7
-    command: --innodb-use-native-aio=0
+    build: 
+      context: ./mysql
     container_name: db
-    restart: always
-    tty: true
     volumes:
-      - ./mysql:/var/lib/mysql
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       - MYSQL_DATABASE=appdb
       - MYSQL_ROOT_PASSWORD=root
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 10s
+      retries: 3
   app:
     container_name: app
     build: 
       context: app
+    entrypoint: sh -c "npm install && node index.js"
     networks:
       - app-network
     volumes:
@@ -26,7 +31,8 @@ services:
     ports:
       - "3000:3000"
     depends_on: 
-       - db
+       db:
+         condition: service_healthy
   nginx:
     container_name: nginx
     build: 
@@ -34,7 +40,9 @@ services:
     networks:
       - app-network
     ports:
-      - "8080:80"      
+      - "8080:80"
+    depends_on: 
+       - app
 networks:
   app-network:
     driver: bridge

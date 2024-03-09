@@ -9,7 +9,7 @@ const config = {
     database: 'appdb'
 };
 
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const conexao = mysql.createConnection(config);
 const sql = `INSERT INTO pessoa (nome) values ('Nome da pessoa')`;
 conexao.query(sql);
